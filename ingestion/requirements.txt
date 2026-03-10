@@ -3,3 +3,5 @@ requests==2.31.0
 pandas==2.2.0
 pyarrow==15.0.0             # Parquet engine
 google-cloud-storage==2.14.0  # GCS upload
+google-cloud-bigquery==3.17.0   # add this too, you'll need it for gcs_to_bigquery.py
+python-dotenv==1.0.0            # add this for environment variable management
