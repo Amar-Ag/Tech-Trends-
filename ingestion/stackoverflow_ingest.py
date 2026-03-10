@@ -25,6 +25,9 @@ import pandas as pd
 import requests
 from google.cloud import storage
 
+from dotenv import load_dotenv
+load_dotenv()  # reads .env automatically
+
 # ── Configuration ────────────────────────────────────────────────
 GCS_BUCKET = os.environ.get("GCS_BUCKET", "your-tech-trends-bucket")
 
