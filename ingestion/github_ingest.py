@@ -33,9 +33,13 @@ logger = logging.getLogger(__name__)
 def get_credentials():
     key_b64 = os.environ.get("GCP_SA_KEY_B64")
     if key_b64:
+        # strip ALL whitespace including newlines added by KV store
         key_b64 = key_b64.strip()
-        key_bytes = base64.b64decode(key_b64 + "==")
-        info = json.loads(key_bytes.decode("utf-8", errors="ignore"))
+        # decode and strip any trailing null bytes
+        key_bytes = base64.b64decode(key_b64)
+        # strip trailing whitespace/nulls from decoded bytes
+        key_str = key_bytes.decode("utf-8", errors="ignore").strip()
+        info = json.loads(key_str)
         return service_account.Credentials.from_service_account_info(info)
     return None
 
