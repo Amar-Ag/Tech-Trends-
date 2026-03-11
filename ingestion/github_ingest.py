@@ -36,14 +36,13 @@ def get_credentials():
         key_b64 = key_b64.strip()
         key_bytes = base64.b64decode(key_b64)
         key_str = key_bytes.decode("utf-8", errors="ignore").strip()
-        # show what's around the problem area
-        print(f"Total length: {len(key_str)}")
-        print(f"Chars 2370-2390: {repr(key_str[2370:2390])}")
-        print(f"Last 20 chars: {repr(key_str[-20:])}")
+        # KV store appends garbage bytes after closing }
+        # find the last } and truncate there
+        last_brace = key_str.rfind("}")
+        key_str = key_str[:last_brace + 1]
         info = json.loads(key_str)
         return service_account.Credentials.from_service_account_info(info)
     return None
-
 # ── Core Functions ───────────────────────────────────────────────
 
 def build_url(date: datetime, hour: int) -> str:
