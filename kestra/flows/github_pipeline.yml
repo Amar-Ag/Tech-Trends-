@@ -1,0 +1,43 @@
+id: github_daily_pipeline
+namespace: tech.trends
+
+description: >
+  Daily pipeline - downloads GitHub Archive data,
+  uploads to GCS, then loads into BigQuery
+
+tasks:
+  - id: ingest_github
+    type: io.kestra.plugin.scripts.python.Commands
+    docker:
+      image: python:3.11
+    beforeCommands:
+      - pip install requests pandas pyarrow google-cloud-storage python-dotenv -q
+    env:
+      GCS_BUCKET: "tech-trends-bucket-489801"
+      GOOGLE_APPLICATION_CREDENTIALS: "/keys/service-account.json"
+      INGEST_DATE: "{{ execution.startDate | dateAdd(-1, 'DAYS') | date('yyyy-MM-dd') }}"
+    commands:
+      - python /project/ingestion/github_ingest.py   
+      
+
+  - id: load_to_bigquery
+    type: io.kestra.plugin.scripts.python.Commands
+    description: Load parquet files from GCS into BigQuery
+    docker:
+      image: python:3.11
+    beforeCommands:
+      - pip install google-cloud-bigquery google-cloud-storage python-dotenv -q
+    env:
+      GCP_PROJECT_ID: "tech-trends-489801"
+      GCS_BUCKET: "tech-trends-bucket-489801"
+      BQ_DATASET: "raw"
+      BQ_TABLE: "github_events"
+      GOOGLE_APPLICATION_CREDENTIALS: "/keys/service-account.json"
+      INGEST_DATE: "{{ execution.startDate | dateAdd(-1, 'DAYS') | date('yyyy-MM-dd') }}"
+    commands:
+      - python /project/ingestion/gcs_to_bigquery.py   
+
+triggers:
+  - id: daily_schedule
+    type: io.kestra.plugin.core.trigger.Schedule
+    cron: "0 6 * * *"                           
