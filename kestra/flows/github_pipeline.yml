@@ -11,14 +11,14 @@ tasks:
     docker:
       image: python:3.11
     beforeCommands:
-      - pip install requests pandas pyarrow google-cloud-storage python-dotenv -q
+      - git clone https://github.com/Amar-Ag/Tech-Trends- /app
+      - pip install -r /app/ingestion/requirements.txt -q
     env:
+      GCP_SA_KEY_B64: "{{ kv('GCP_SA_KEY_B64') }}"
       GCS_BUCKET: "tech-trends-bucket-489801"
-      GOOGLE_APPLICATION_CREDENTIALS: "/keys/service-account.json"
       INGEST_DATE: "{{ execution.startDate | dateAdd(-1, 'DAYS') | date('yyyy-MM-dd') }}"
     commands:
-      - python /project/ingestion/github_ingest.py   
-      
+      - python /app/ingestion/github_ingest.py
 
   - id: load_to_bigquery
     type: io.kestra.plugin.scripts.python.Commands
@@ -26,18 +26,19 @@ tasks:
     docker:
       image: python:3.11
     beforeCommands:
-      - pip install google-cloud-bigquery google-cloud-storage python-dotenv -q
+      - git clone https://github.com/Amar-Ag/Tech-Trends- /app
+      - pip install -r /app/ingestion/requirements.txt -q
     env:
+      GCP_SA_KEY_B64: "{{ kv('GCP_SA_KEY_B64') }}"
       GCP_PROJECT_ID: "tech-trends-489801"
       GCS_BUCKET: "tech-trends-bucket-489801"
       BQ_DATASET: "raw"
       BQ_TABLE: "github_events"
-      GOOGLE_APPLICATION_CREDENTIALS: "/keys/service-account.json"
       INGEST_DATE: "{{ execution.startDate | dateAdd(-1, 'DAYS') | date('yyyy-MM-dd') }}"
     commands:
-      - python /project/ingestion/gcs_to_bigquery.py   
+      - python /app/ingestion/gcs_to_bigquery.py
 
 triggers:
   - id: daily_schedule
     type: io.kestra.plugin.core.trigger.Schedule
-    cron: "0 6 * * *"                           
+    cron: "0 6 * * *"
