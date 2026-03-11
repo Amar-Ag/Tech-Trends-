@@ -1,30 +1,18 @@
-"""
-github_ingest.py
-─────────────────────────────────────────────────────────────────
-Downloads hourly GitHub Archive files for a given date and uploads
-them as Parquet files to a GCS bucket (your data lake).
-
-FIX: Uploads each hour separately instead of loading all 24 hours
-into memory at once — avoids OOM (out of memory) crashes.
-
-GCS path structure:
-  gs://<bucket>/raw/github/year=YYYY/month=MM/day=DD/hour=HH.parquet
-─────────────────────────────────────────────────────────────────
-"""
-
 import gzip
 import io
 import json
 import logging
 import os
+import base64
 from datetime import datetime, timedelta
 
 import pandas as pd
 import requests
 from google.cloud import storage
-
+from google.oauth2 import service_account
 from dotenv import load_dotenv
-load_dotenv()  # reads .env automatically
+
+load_dotenv()
 
 # ── Configuration ────────────────────────────────────────────────
 GCS_BUCKET = os.environ.get("GCS_BUCKET", "tech-trends-bucket-489801")
@@ -41,13 +29,26 @@ logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(me
 logger = logging.getLogger(__name__)
 
 
+# ── Credentials ──────────────────────────────────────────────────
+def get_credentials():
+    """
+    Get GCP credentials from base64 encoded env var (used in Kestra)
+    or fall back to GOOGLE_APPLICATION_CREDENTIALS file (used locally).
+    """
+    key_b64 = os.environ.get("GCP_SA_KEY_B64")
+    if key_b64:
+        info = json.loads(base64.b64decode(key_b64).decode("utf-8"))
+        return service_account.Credentials.from_service_account_info(info)
+    return None  # falls back to GOOGLE_APPLICATION_CREDENTIALS file
+
+
 # ── Core Functions ───────────────────────────────────────────────
 
 def build_url(date: datetime, hour: int) -> str:
     return f"{GH_ARCHIVE_BASE_URL}/{date.strftime('%Y-%m-%d')}-{hour}.json.gz"
 
 
-def download_and_parse(url: str) -> list[dict]:
+def download_and_parse(url: str) -> list:
     logger.info(f"Downloading: {url}")
     response = requests.get(url, timeout=60, stream=True)
 
@@ -99,7 +100,10 @@ def upload_to_gcs(df: pd.DataFrame, bucket_name: str, gcs_path: str) -> None:
     df.to_parquet(buffer, index=False, engine="pyarrow")
     buffer.seek(0)
 
-    client = storage.Client()
+    # use decoded credentials if available, otherwise use key file
+    credentials = get_credentials()
+    client = storage.Client(credentials=credentials)
+
     bucket = client.bucket(bucket_name)
     blob = bucket.blob(gcs_path)
     blob.upload_from_file(buffer, content_type="application/octet-stream")
@@ -108,10 +112,6 @@ def upload_to_gcs(df: pd.DataFrame, bucket_name: str, gcs_path: str) -> None:
 
 
 def ingest_hour(date: datetime, hour: int, bucket_name: str) -> int:
-    """
-    Ingest a single hour, upload immediately, then discard from memory.
-    Returns number of events ingested (0 if skipped).
-    """
     url = build_url(date, hour)
     events = download_and_parse(url)
 
@@ -127,20 +127,14 @@ def ingest_hour(date: datetime, hour: int, bucket_name: str) -> int:
     month = date.strftime("%m")
     day   = date.strftime("%d")
 
-    # One file per hour — much lighter on memory
     gcs_path = f"raw/github/year={year}/month={month}/day={day}/hour={hour:02d}.parquet"
     upload_to_gcs(df, bucket_name, gcs_path)
 
-    # Explicitly free memory after each hour
     del df
     return len(events)
 
 
 def ingest_day(date: datetime, bucket_name: str = GCS_BUCKET) -> None:
-    """
-    Ingest all 24 hours for a given date.
-    Each hour is uploaded and discarded before the next is downloaded.
-    """
     logger.info(f"Starting ingestion for {date.strftime('%Y-%m-%d')}")
     total_events = 0
 
