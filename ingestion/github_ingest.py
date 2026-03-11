@@ -121,8 +121,9 @@ def ingest_hour(date: datetime, hour: int, bucket_name: str) -> int:
 
     df = pd.DataFrame(events)
     df["created_at"] = pd.to_datetime(df["created_at"], utc=True)
-    df["actor_id"]   = pd.to_numeric(df["actor_id"], errors="coerce")
-    df["repo_id"]    = pd.to_numeric(df["repo_id"], errors="coerce")
+
+    df["actor_id"] = pd.to_numeric(df["actor_id"], errors="coerce").astype("Int64")
+    df["repo_id"]  = pd.to_numeric(df["repo_id"], errors="coerce").astype("Int64")
 
     year  = date.strftime("%Y")
     month = date.strftime("%m")
