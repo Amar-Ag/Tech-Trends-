@@ -31,15 +31,13 @@ logger = logging.getLogger(__name__)
 
 # ── Credentials ──────────────────────────────────────────────────
 def get_credentials():
-    """
-    Get GCP credentials from base64 encoded env var (used in Kestra)
-    or fall back to GOOGLE_APPLICATION_CREDENTIALS file (used locally).
-    """
     key_b64 = os.environ.get("GCP_SA_KEY_B64")
     if key_b64:
-        info = json.loads(base64.b64decode(key_b64).decode("utf-8"))
+        key_b64 = key_b64.strip()
+        key_bytes = base64.b64decode(key_b64 + "==")
+        info = json.loads(key_bytes.decode("utf-8", errors="ignore"))
         return service_account.Credentials.from_service_account_info(info)
-    return None  # falls back to GOOGLE_APPLICATION_CREDENTIALS file
+    return None
 
 
 # ── Core Functions ───────────────────────────────────────────────
