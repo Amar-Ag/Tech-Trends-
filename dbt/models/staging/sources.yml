@@ -1,8 +1,26 @@
 version: 2
 
 sources:
-  - name: raw            
+  - name: raw
     database: tech-trends-489801
     schema: raw
     tables:
-      - name: github_events           
+      - name: github_events
+        columns:
+          - name: event_id
+            tests:
+              - not_null
+              - unique:
+                  config:
+                    severity: warn
+          - name: event_type
+            tests:
+              - not_null
+              - accepted_values:
+                  config:
+                    severity: error
+                  values:
+                    - WatchEvent
+                    - ForkEvent
+                    - PushEvent
+                    - PullRequestEvent
