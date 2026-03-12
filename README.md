@@ -4,7 +4,7 @@ An end-to-end data engineering project that tracks GitHub developer activity tre
 
 ## 📊 Dashboard
 
-[View Live Dashboard →]([https://lookerstudio.google.com](https://lookerstudio.google.com/reporting/76c9eb76-17e3-457d-9f9c-c210599abaa3)
+[View Live Dashboard →](https://lookerstudio.google.com/reporting/76c9eb76-17e3-457d-9f9c-c210599abaa3)
 
 <img width="2211" height="1208" alt="image" src="https://github.com/user-attachments/assets/70fe78f6-21da-4cb2-9fed-6032059a2ae4" />
 
