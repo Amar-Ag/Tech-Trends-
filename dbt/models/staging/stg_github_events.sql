@@ -21,7 +21,7 @@ renamed as (
         repo_slug,
         
         -- created_at is now a proper TIMESTAMP — no conversion needed
-        DATE(created_at)             as event_date,
+        DATE(created_at) as event_date,
         EXTRACT(HOUR FROM created_at) as event_hour,
         created_at
 
