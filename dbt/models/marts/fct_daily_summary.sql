@@ -1,5 +1,5 @@
 with stg as (
-    select * from {{ ref('stg_github_events') }}   -- hint: reference the staging model
+    select * from {{ ref('stg_github_events') }}  
 )
 
 select

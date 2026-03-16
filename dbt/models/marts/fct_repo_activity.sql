@@ -7,7 +7,7 @@ select
     repo_owner,
     repo_slug,
     COUNT(*) as total_events,
-    COUNTIF(event_type = 'WatchEvent') as star_count,     -- hint: which event = starring?
+    COUNTIF(event_type = 'WatchEvent') as star_count,    
     COUNTIF(event_type = 'ForkEvent') as fork_count,
     COUNTIF(event_type = 'PushEvent') as push_count,
     MIN(event_date) as first_seen,
