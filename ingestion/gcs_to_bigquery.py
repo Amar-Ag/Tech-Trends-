@@ -45,6 +45,16 @@ def load_gcs_to_bigquery(date_str: str) -> None:
     gcs_uri   = f"gs://{GCS_BUCKET}/raw/github/year={year}/month={month}/day={day}/*.parquet"
     table_ref = f"{PROJECT_ID}.{DATASET}.{TABLE}"
 
+    # Step 1 — delete existing rows for this date (idempotent)
+    delete_query = f"""
+    DELETE FROM `{table_ref}`
+    WHERE DATE(created_at) = '{date_str}'
+    """
+    client.query(delete_query).result()
+    print(f"🗑️ Deleted existing rows for {date_str}")
+
+    # Step 2 — load fresh data from GCS
+
     job_config = bigquery.LoadJobConfig(
         source_format=bigquery.SourceFormat.PARQUET,
         write_disposition=bigquery.WriteDisposition.WRITE_APPEND,
