@@ -1,0 +1,9 @@
+default_environment: default
+
+environments:
+  default:
+    connections:
+      google_cloud_platform:
+        - name: "gcp-default"
+          project_id: "tech-trends-489801"
+          service_account_file: "/workspaces/Tech-Trends-/keys/service-account.json"

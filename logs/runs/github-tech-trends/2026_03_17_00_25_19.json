@@ -1,0 +1,66 @@
+{
+  "cmdline": [
+    "bruin",
+    "run",
+    "--start-date",
+    "2024-11-03",
+    "--end-date",
+    "2024-11-03",
+    "."
+  ],
+  "parameters": {
+    "downstream": false,
+    "startDate": "2024-11-03",
+    "endDate": "2024-11-03",
+    "workers": 16,
+    "environment": "",
+    "force": false,
+    "pushMetadata": false,
+    "noLogFile": false,
+    "fullRefresh": false,
+    "tag": "",
+    "excludeTag": "",
+    "only": [],
+    "output": "",
+    "expUseWingetForUv": false,
+    "configFilePath": "",
+    "sensorMode": "",
+    "applyIntervalModifiers": false,
+    "annotations": "",
+    "useGong": false
+  },
+  "metadata": {
+    "version": "v0.11.489",
+    "os": "linux"
+  },
+  "state": [
+    {
+      "name": "prod.fct_repo_activity",
+      "status": "failed"
+    },
+    {
+      "name": "raw.ingest_github",
+      "status": "succeeded"
+    },
+    {
+      "name": "raw.load_to_bigquery",
+      "status": "failed"
+    },
+    {
+      "name": "prod.stg_github_events",
+      "status": "failed"
+    },
+    {
+      "name": "prod.fct_daily_summary",
+      "status": "failed"
+    },
+    {
+      "name": "prod.fct_hourly_activity",
+      "status": "failed"
+    }
+  ],
+  "version": "1.0.0",
+  "timestamp": "2026-03-17T00:30:13.769690694Z",
+  "run_id": "2026_03_17_00_25_19",
+  "compatibility_hash": "605adf0f7710778cee7f114388949ad541e039b0342d6f38fbd6a486662e44e9"
+}

@@ -1,0 +1,76 @@
+name: Backfill GitHub Archive Data
+
+on:
+  workflow_dispatch:
+
+jobs:
+  backfill:
+    runs-on: ubuntu-latest
+    timeout-minutes: 480    # 8 hours max
+
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install uv
+        run: curl -LsSf https://astral.sh/uv/install.sh | sh
+
+      - name: Install dependencies
+        run: |
+          ~/.local/bin/uv pip install --system \
+            requests pandas pyarrow \
+            google-cloud-storage \
+            google-cloud-bigquery \
+            google-auth python-dotenv
+
+      - name: Set up GCP credentials
+        run: |
+          mkdir -p keys
+          echo '${{ secrets.GCP_SA_KEY }}' > keys/service-account.json
+
+      - name: Run backfill
+        env:
+          GOOGLE_APPLICATION_CREDENTIALS: keys/service-account.json
+          GCS_BUCKET: tech-trends-bucket-489801
+          GCP_PROJECT_ID: tech-trends-489801
+          BQ_DATASET: raw
+          BQ_TABLE: github_events
+        run: |
+          DATES=(
+            "2025-12-01" "2025-12-05"
+            "2025-12-08" "2025-12-12"
+            "2025-12-15" "2025-12-19"
+            "2025-12-22" "2025-12-26"
+            "2025-12-29"
+            "2026-01-02" "2026-01-05"
+            "2026-01-09" "2026-01-12"
+            "2026-01-16" "2026-01-19"
+            "2026-01-23" "2026-01-26"
+            "2026-01-30"
+            "2026-02-02" "2026-02-06"
+            "2026-02-09" "2026-02-13"
+            "2026-02-16" "2026-02-20"
+            "2026-02-23" "2026-02-27"
+            "2026-03-02" "2026-03-06"
+            "2026-03-09" "2026-03-13"
+          )
+
+          for date in "${DATES[@]}"; do
+            echo "================================================"
+            echo "Ingesting $date..."
+            echo "================================================"
+            INGEST_DATE=$date python ingestion/github_ingest.py
+            INGEST_DATE=$date python ingestion/gcs_to_bigquery.py
+            echo "✅ Done: $date"
+          done
+
+          echo "🎉 Full backfill complete!"
+
+      - name: Cleanup credentials
+        if: always()
+        run: rm -f keys/service-account.json

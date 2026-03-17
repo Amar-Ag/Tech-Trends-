@@ -1,0 +1,62 @@
+{
+  "cmdline": [
+    "bruin",
+    "run",
+    "--start-date",
+    "2024-11-01",
+    "--end-date",
+    "2024-11-01",
+    "assets/stg_github_events.sql"
+  ],
+  "parameters": {
+    "downstream": false,
+    "startDate": "2024-11-01",
+    "endDate": "2024-11-01",
+    "workers": 16,
+    "environment": "",
+    "force": false,
+    "pushMetadata": false,
+    "noLogFile": false,
+    "fullRefresh": false,
+    "tag": "",
+    "excludeTag": "",
+    "only": [],
+    "output": "",
+    "expUseWingetForUv": false,
+    "configFilePath": "",
+    "sensorMode": "",
+    "applyIntervalModifiers": false,
+    "annotations": "",
+    "useGong": false
+  },
+  "metadata": {
+    "version": "v0.11.489",
+    "os": "linux"
+  },
+  "state": [
+    {
+      "name": "prod.fct_repo_activity",
+      "status": "skipped"
+    },
+    {
+      "name": "raw.ingest_github",
+      "status": "skipped"
+    },
+    {
+      "name": "prod.stg_github_events",
+      "status": "succeeded"
+    },
+    {
+      "name": "prod.fct_daily_summary",
+      "status": "skipped"
+    },
+    {
+      "name": "prod.fct_hourly_activity",
+      "status": "skipped"
+    }
+  ],
+  "version": "1.0.0",
+  "timestamp": "2026-03-17T00:06:49.889710232Z",
+  "run_id": "2026_03_17_00_06_47",
+  "compatibility_hash": "f2b420f1e3e9b30de4a5c9dbfb57c83c4deb501defa0ebe8231f03951b17e9cd"
+}
