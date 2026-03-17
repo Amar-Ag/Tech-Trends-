@@ -210,3 +210,4 @@ keys/
 terraform.tfstate
 terraform.tfstate.backup
 .venv/
+logs/
