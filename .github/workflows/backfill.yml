@@ -6,7 +6,7 @@ on:
 jobs:
   backfill:
     runs-on: ubuntu-latest
-    timeout-minutes: 480    # 8 hours max
+    timeout-minutes: 480
 
     steps:
       - name: Checkout repo
@@ -17,25 +17,25 @@ jobs:
         with:
           python-version: '3.12'
 
-      - name: Install uv
-        run: curl -LsSf https://astral.sh/uv/install.sh | sh
+      - name: Authenticate to GCP
+        uses: google-github-actions/auth@v2
+        with:
+          credentials_json: '${{ secrets.GCP_SA_KEY }}'
+
+      - name: Set up Cloud SDK
+        uses: google-github-actions/setup-gcloud@v2
 
       - name: Install dependencies
         run: |
+          curl -LsSf https://astral.sh/uv/install.sh | sh
           ~/.local/bin/uv pip install --system \
             requests pandas pyarrow \
             google-cloud-storage \
             google-cloud-bigquery \
             google-auth python-dotenv
 
-      - name: Set up GCP credentials
-        run: |
-          mkdir -p keys
-          echo '${{ secrets.GCP_SA_KEY }}' > keys/service-account.json
-
       - name: Run backfill
         env:
-          GOOGLE_APPLICATION_CREDENTIALS: keys/service-account.json
           GCS_BUCKET: tech-trends-bucket-489801
           GCP_PROJECT_ID: tech-trends-489801
           BQ_DATASET: raw
@@ -69,8 +69,4 @@ jobs:
             echo "✅ Done: $date"
           done
 
-          echo "🎉 Full backfill complete!"
-
-      - name: Cleanup credentials
-        if: always()
-        run: rm -f keys/service-account.json
+          echo "Full backfill complete!"
