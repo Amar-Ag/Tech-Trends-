@@ -210,3 +210,8 @@ keys/
 terraform.tfstate
 terraform.tfstate.backup
 .venv/
+
+.bruin.yml
+logs/runs
+logs/*.log
+*.py[cod]

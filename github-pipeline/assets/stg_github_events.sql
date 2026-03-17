@@ -4,7 +4,7 @@ type: bq.sql
 materialization:
   type: view
 depends:
-  - raw.ingest_github
+  - raw.load_to_bigquery
 columns:
   - name: event_id
     checks:
@@ -13,7 +13,11 @@ columns:
     checks:
       - name: not_null
       - name: accepted_values
-        value: "WatchEvent,ForkEvent,PushEvent,PullRequestEvent"
+        value:
+          - WatchEvent
+          - ForkEvent
+          - PushEvent
+          - PullRequestEvent
   - name: event_date
     checks:
       - name: not_null
@@ -23,7 +27,7 @@ columns:
 -- Cleans and standardises raw GitHub events
 
 with source as (
-    select * from 'tech-trends-489801.raw.github_events'
+    select * from `tech-trends-489801.raw.github_events`
 ),
 
 renamed as (
