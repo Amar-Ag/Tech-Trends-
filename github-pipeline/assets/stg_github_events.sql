@@ -2,14 +2,18 @@
 name: prod.stg_github_events
 type: bq.sql
 materialization:
-  type: view
+  type: table
+  strategy: merge
 depends:
   - raw.load_to_bigquery
 columns:
   - name: event_id
+    type: STRING
+    primary_key: true
     checks:
       - name: not_null
   - name: event_type
+    type: STRING
     checks:
       - name: not_null
       - name: accepted_values
@@ -19,8 +23,23 @@ columns:
           - PushEvent
           - PullRequestEvent
   - name: event_date
+    type: DATE
     checks:
       - name: not_null
+  - name: event_hour
+    type: INTEGER
+  - name: actor_login
+    type: STRING
+  - name: actor_id
+    type: INTEGER
+  - name: repo_name
+    type: STRING
+  - name: repo_owner
+    type: STRING
+  - name: repo_slug
+    type: STRING
+  - name: created_at
+    type: TIMESTAMP
 @bruin */
 
 -- stg_github_events.sql

@@ -3,8 +3,18 @@ name: prod.fct_daily_summary
 type: bq.sql
 materialization:
   type: table
+  strategy: merge
 depends:
   - prod.stg_github_events
+columns:
+  - name: event_date
+    type: DATE
+    primary_key: true
+  - name: event_type
+    type: STRING
+    primary_key: true
+  - name: event_count
+    type: INTEGER
 @bruin */
 
 with stg as (
