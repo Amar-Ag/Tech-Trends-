@@ -1,5 +1,13 @@
+{{ config(materialized='incremental') }}
+
 with stg as (
     select * from {{ ref('stg_github_events') }}  
+    {% if is_incremental() %}
+    -- only runs on incremental runs, not the first run
+    where event_date > (
+        select max(event_date) from {{ this }}
+    )
+    {% endif %}
 )
 
 select
