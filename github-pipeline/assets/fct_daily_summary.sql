@@ -4,6 +4,9 @@ type: bq.sql
 materialization:
   type: table
   strategy: merge
+  partition_by: event_date
+  cluster_by:
+    - event_type
 depends:
   - prod.stg_github_events
 columns:
@@ -27,4 +30,3 @@ select
 from stg
 where event_date is not null
 group by event_date, event_type
-order by event_date desc

@@ -3,6 +3,9 @@ name: prod.fct_repo_activity
 type: bq.sql
 materialization:
   type: table
+  partition_by: last_seen
+  cluster_by:
+    - repo_owner
 depends:
   - prod.stg_github_events
 @bruin */
@@ -24,4 +27,4 @@ from stg
 where repo_name is not null
     and repo_name != ''
 group by repo_name, repo_owner, repo_slug
-order by total_events desc
+--order by total_events desc #Removing for partitioning and clustering, can be added in downstream models or BI tools

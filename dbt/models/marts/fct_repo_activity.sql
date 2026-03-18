@@ -1,3 +1,9 @@
+{{ config(
+    materialized='table',
+    partition_by={'field': 'last_seen', 'data_type': 'date'},
+    cluster_by=['repo_owner']
+) }}
+
 with stg as (
     select * from {{ ref('stg_github_events') }}
 )
@@ -16,4 +22,3 @@ from stg
 where repo_name is not null
     and repo_name != ''
 group by repo_name, repo_owner, repo_slug
-order by total_events desc

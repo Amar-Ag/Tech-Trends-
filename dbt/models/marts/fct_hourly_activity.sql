@@ -1,3 +1,5 @@
+{{ config(materialized='table') }}
+
 with stg as (
     select * from {{ ref('stg_github_events') }}
 )
