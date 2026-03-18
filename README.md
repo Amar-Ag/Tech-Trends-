@@ -6,8 +6,7 @@ An end-to-end data engineering project that tracks GitHub developer activity tre
 
 [View Live Dashboard →](https://lookerstudio.google.com/reporting/76c9eb76-17e3-457d-9f9c-c210599abaa3)
 
-<img width="1666" height="964" alt="image" src="https://github.com/user-attachments/assets/39e2987d-a6a1-4c0d-b770-f2d7933a006d" />
-
+![alt text](image-1.png)
 
 **The dashboard answers:**
 - Which repositories are trending (most starred/forked)?
@@ -46,34 +45,36 @@ GitHub Archive (gharchive.org)
   staging → marts
         ↓
   BigQuery Production Layer
-  prod.fct_daily_summary
-  prod.fct_repo_activity
-  prod.fct_hourly_activity
+  prod.stg_github_events    (incremental table)
+  prod.fct_daily_summary    (incremental, partitioned by event_date, clustered by event_type)
+  prod.fct_repo_activity    (partitioned by last_seen, clustered by repo_owner)
+  prod.fct_hourly_activity  (table)
         ↓
   Looker Studio Dashboard
 
   Orchestrated by Kestra (daily at 6am UTC)
   Infrastructure provisioned by Terraform
+  Backfills via GitHub Actions
 ```
 
-### Bruin Branch (bruin-migration)
+### Bruin Pipeline (github-pipeline/)
 
 ```
 GitHub Archive (gharchive.org)
         ↓
   raw.ingest_github        (Bruin Python asset)
         ↓
-  raw.load_to_bigquery     (Bruin Python asset)
+  raw.load_to_bigquery     (Bruin Python asset — delete+insert idempotent)
         ↓
-  prod.stg_github_events   (Bruin bq.sql asset + quality checks)
+  prod.stg_github_events   (Bruin bq.sql — merge strategy + 4 quality checks)
         ↓
-  prod.fct_daily_summary
-  prod.fct_repo_activity   (Bruin bq.sql assets — run in parallel)
-  prod.fct_hourly_activity
+  prod.fct_daily_summary    (partitioned by event_date, clustered by event_type)
+  prod.fct_repo_activity    (partitioned by last_seen, clustered by repo_owner)
+  prod.fct_hourly_activity  (Bruin bq.sql assets — run in parallel)
         ↓
   Looker Studio Dashboard
 
-  Everything orchestrated by Bruin (single tool)
+  Everything orchestrated by Bruin (single tool — no Kestra, no dbt)
   Infrastructure provisioned by Terraform
 ```
 
@@ -81,7 +82,7 @@ GitHub Archive (gharchive.org)
 
 ## 🛠️ Tech Stack
 
-| Layer | Main Branch | Bruin Branch |
+| Layer | Main Branch | Bruin Pipeline |
 |---|---|---|
 | Cloud | GCP (BigQuery, GCS) | GCP (BigQuery, GCS) |
 | Infrastructure as Code | Terraform | Terraform |
@@ -92,6 +93,7 @@ GitHub Archive (gharchive.org)
 | Dashboard | Looker Studio | Looker Studio |
 | Language | Python 3.12 | Python 3.12 |
 | Dependency Management | uv | uv |
+| CI/CD | GitHub Actions | GitHub Actions |
 
 ---
 
@@ -113,21 +115,21 @@ Tech-Trends-/
 ├── dbt/
 │   ├── models/
 │   │   ├── staging/
-│   │   │   ├── sources.yml     # Source definitions + quality tests
-│   │   │   └── stg_github_events.sql
+│   │   │   ├── sources.yml           # Source definitions + quality tests
+│   │   │   └── stg_github_events.sql # incremental
 │   │   └── marts/
-│   │       ├── fct_daily_summary.sql
-│   │       ├── fct_repo_activity.sql
+│   │       ├── fct_daily_summary.sql    # incremental + partitioned
+│   │       ├── fct_repo_activity.sql    # partitioned + clustered
 │   │       └── fct_hourly_activity.sql
 │   └── dbt_project.yml
-├── github-pipeline/            # Bruin pipeline (bruin-migration branch)
+├── github-pipeline/            # Bruin pipeline
 │   ├── pipeline.yml
 │   └── assets/
 │       ├── ingest_github.py
 │       ├── load_to_bigquery.py
-│       ├── stg_github_events.sql
-│       ├── fct_daily_summary.sql
-│       ├── fct_repo_activity.sql
+│       ├── stg_github_events.sql   # merge strategy + quality checks
+│       ├── fct_daily_summary.sql   # partitioned + clustered
+│       ├── fct_repo_activity.sql   # partitioned + clustered
 │       └── fct_hourly_activity.sql
 ├── .github/
 │   └── workflows/
@@ -190,41 +192,55 @@ uv sync
 INGEST_DATE=2025-12-01 uv run python ingestion/github_ingest.py
 INGEST_DATE=2025-12-01 uv run python ingestion/gcs_to_bigquery.py
 
-# Default (no date set) ingests yesterday automatically
+# Default — ingests yesterday automatically
 uv run python ingestion/github_ingest.py
 uv run python ingestion/gcs_to_bigquery.py
 ```
 
 ### 7. Backfill historical data via GitHub Actions
-A GitHub Actions workflow is included for bulk backfills — runs on GitHub's servers so you don't need to keep your laptop on:
-1. Go to **Actions → Backfill GitHub Archive Data → Run workflow**
-2. Edit `.github/workflows/backfill.yml` to change the date list
-3. Trigger and close your laptop — check back when it's done
+A GitHub Actions workflow is included for bulk backfills — runs on GitHub's servers so you don't need to keep your system on or have an active session:
+1. Edit `.github/workflows/backfill.yml` to set your date list
+2. Go to **Actions → Backfill GitHub Archive Data → Run workflow**
+3. Close your system and check back when done ✅
 
-### 8. Start Kestra (orchestration)
+### 8. Run dbt transformations
+
+**Normal daily run (incremental — only processes new data):**
+```bash
+cd dbt
+uv run dbt build
+```
+
+**After a backfill (full refresh — reprocesses all data):**
+```bash
+cd dbt
+uv run dbt build --full-refresh
+```
+
+> ⚠️ Always run `dbt build --full-refresh` after backfilling historical dates.
+> The incremental models filter on `max(created_at)` so they will skip
+> historical rows unless you force a full rebuild.
+
+### 9. Start Kestra (orchestration)
 ```bash
 docker-compose up -d
 # Open http://localhost:8080
 # Import kestra/flows/github_pipeline.yml
-# Add GCP_SA_KEY_B64 to Kestra KV Store
+# Add GCP_SA_KEY_B64 to Kestra UI → Namespace → KV Store
 ```
 
-### 9. Run dbt transformations
+### 10. Run with Bruin pipeline
 ```bash
-cd dbt
-uv run dbt build   # runs models + quality tests
-```
-
-### 10. Run with Bruin (bruin-migration branch)
-```bash
-git checkout bruin-migration
-cd github-pipeline
-
 # Install Bruin
 curl -LsSf https://raw.githubusercontent.com/bruin-data/bruin/refs/heads/main/install.sh | sh
 
+cd github-pipeline
+
 # Run full pipeline for a specific date
 bruin run --start-date 2025-12-01 --end-date 2025-12-01 .
+
+# Run with full refresh
+bruin run --start-date 2025-12-01 --end-date 2025-12-01 . --full-refresh
 
 # View asset lineage
 bruin lineage assets/stg_github_events.sql
@@ -247,17 +263,20 @@ Connect Looker Studio to BigQuery `prod` dataset and build charts from:
 - `PushEvent` — code pushed
 - `PullRequestEvent` — PR opened/closed/merged
 
-Data covers **November 2024 → March 2026**, ingested at 2 dates per week frequency.
+Data covers **November 2024 → March 2026**, sampled at 2 dates per week frequency (~121 total dates, ~350M events).
 
 ---
 
 ## 💡 Key Findings
 
-- **PushEvent dominates at 84.7%** of all GitHub activity
-- **12PM UTC is consistently the busiest hour** — aligns with European afternoon + US morning overlap
-- **GitHub activity dropped ~30%** after May 2025 compared to early 2025
-- **n8n-io/n8n** was among the most starred repos — AI automation tools exploded in 2025
-- **Stars spike at 12PM UTC** — when developers browse during lunch
+- **PushEvent dominates at 84.6%** of all GitHub activity — developers push code far more than they star or fork
+- **GitHub activity dropped ~30% after May 2025** — visible trend from ~3.5M to ~2.5M events per day
+- **12PM UTC is consistently the busiest hour** across all 16 months — European afternoon + US morning overlap
+- **codecrafters-io/build-your-own-x** was the most starred repo with 34,786 stars — learning resources dominate
+- **n8n-io/n8n** had the most forks (9,875) — AI automation tools are being self-hosted heavily
+- **deepseek-ai/DeepSeek-V3** at #4 with 22,781 stars — the Chinese AI model that shocked the industry in late 2024
+- **langflow-ai/langflow** at #7 — AI workflow and agent tools exploded in popularity throughout 2025
+- Data covers **Nov 2024 → Mar 2026** across 121 sampled dates at 2-per-week frequency
 
 ---
 
@@ -266,6 +285,7 @@ Data covers **November 2024 → March 2026**, ingested at 2 dates per week frequ
 - Add Stack Overflow survey data for salary/language trend analysis
 - Implement streaming pipeline with Kafka for real-time event processing
 - Deploy Kestra to GCP Cloud Run for production orchestration
-- Add incremental dbt models instead of full refreshes
-- Add CI/CD pipeline to automatically run dbt tests on push
+- Add partitioning to `raw.github_events` table (currently implemented on mart tables only)
+- Add CI/CD pipeline to run dbt tests automatically on every push
+
 
