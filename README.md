@@ -4,9 +4,10 @@ An end-to-end data engineering project that tracks GitHub developer activity tre
 
 ## 📊 Dashboard
 
+<img width="986" height="562" alt="image" src="https://github.com/user-attachments/assets/2e7f4d1f-e664-43c5-81b4-e19a58cb21b1" />
+
 [View Live Dashboard →](https://lookerstudio.google.com/reporting/76c9eb76-17e3-457d-9f9c-c210599abaa3)
 
-![alt text](image-1.png)
 
 **The dashboard answers:**
 - Which repositories are trending (most starred/forked)?
